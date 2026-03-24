@@ -21,5 +21,14 @@ fn main() {
     };
 
     someone.say_hello();
-    someone.say_hello();
+
+    match std::env::home_dir() {
+        Some(data) => println!("option is some, data = {:?}", data),
+        None => println!("option is none"),
+    }
+
+    match std::env::var("LANG") {
+        Ok(data) => println!("ok! {:?}", data),
+        Err(err) => println!("err {}", err),
+    }
 }
