@@ -1,0 +1,15 @@
+services: # Define all services managed by Docker Compose.
+  db: # Service name. You can start only this one via `docker compose up db`.
+    image: postgres:15-alpine # Use official PostgreSQL image, version 15.
+    container_name: db # Fixed container name instead of an auto-generated one.
+    ports:
+      - "5432:5432" # Host port 5432 -> container port 5432.
+    environment: # Initial database bootstrap settings.
+      POSTGRES_USER: user # Database username created at first startup.
+      POSTGRES_PASSWORD: password # Password for POSTGRES_USER.
+      POSTGRES_DB: simple_api # Default database created at first startup.
+    volumes:
+      - pg_data:/var/lib/postgresql/data # Persist DB files to named volume.
+
+volumes: # Declare named volumes used by services.
+  pg_data: # Named volume storing PostgreSQL data directory.

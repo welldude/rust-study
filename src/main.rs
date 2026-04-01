@@ -1,34 +1,44 @@
-struct User {
-    username: String,
-    age: u32,
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgPoolOptions, FromRow, PgPool};
+use std::env;
+
+#[derive(Deserialize)]
+struct UserPayload {
+    name: String, 
     email: String,
 }
 
-impl User {
-    fn say_hello(&self) {
-        println!(
-            "Hello, I'm {}, I'm {} years old, my email is {}.",
-            self.username, self.age, self.email
-        );
-    }
+#[derive(Serialize, FromRow)]
+struct User {
+    id: i32,
+    name: String,
+    email: String,
 }
 
-fn main() {
-    let someone = User {
-        username: String::from("someone"),
-        age: 35,
-        email: String::from("someone@example.com"),
-    };
+#[tokio::main]
+async fn main() {
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = PgPoolOptions::new()
+        .connect(&db_url)
+        .await
+        .expect("Failed to connect to database");
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("Migrations failed");
 
-    someone.say_hello();
-
-    match std::env::home_dir() {
-        Some(data) => println!("option is some, data = {:?}", data),
-        None => println!("option is none"),
-    }
-
-    match std::env::var("LANG") {
-        Ok(data) => println!("ok! {:?}", data),
-        Err(err) => println!("err {}", err),
-    }
+    let app = Router::new()
+        .route("/", get(root))
+        .route("/users", post(create_user).get(list_users))
+        .route(
+            "/users/{id}",
+            get(get_user).put(update_user).delete(delete_user),
+        )
+        .with_state(pool);
 }
