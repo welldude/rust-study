@@ -78,3 +78,52 @@ async fn create_user(
     .map(|u| (StatusCode::CREATED, Json(u)))
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
+
+// GET USER BY ID
+async fn get_user(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+) -> Result<Json<User>, StatusCode> {
+    sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(id)
+        .fetch_one(&pool)
+        .await
+        .map(Json)
+        .map_err(|_| StatusCode::NOT_FOUND)
+}
+
+// UPDATE USER
+async fn update_user(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+    Json(payload): Json<UserPayload>,
+) -> Result<Json<User>, StatusCode> {
+    sqlx::query_as::<_, User>(
+        "UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING *",
+    )
+    .bind(payload.name)
+    .bind(payload.email)
+    .bind(id)
+    .fetch_one(&pool)
+    .await
+    .map(Json)
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+// DELETE USER
+async fn delete_user(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+) -> Result<StatusCode, StatusCode> {
+    let result = sqlx::query("DELETE FROM users WHERE id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if result.rows_affected() == 0 {
+        Err(StatusCode::NOT_FOUND)
+    } else {
+        Ok(StatusCode::NO_CONTENT)
+    }
+}

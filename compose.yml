@@ -11,5 +11,16 @@ services: # Define all services managed by Docker Compose.
     volumes:
       - pg_data:/var/lib/postgresql/data # Persist DB files to named volume.
 
+  app: # HTTP API from Dockerfile in project root.
+    profiles: [app] # Not started by plain `docker compose up -d` (avoids Docker Hub build when only DB is needed).
+    container_name: simple_axum
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/simple_api
+    depends_on:
+      - db # Wait for Postgres container to start first.
+
 volumes: # Declare named volumes used by services.
   pg_data: # Named volume storing PostgreSQL data directory.
